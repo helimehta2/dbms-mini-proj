@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-10">
+    <!-- Hero Banner Card -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-white via-[#FAF5ED] to-[#F3ECE1] p-8 border border-amber-200/70 shadow-lg shadow-stone-200/40">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-amber-100/80 border border-amber-200 text-amber-900 text-xs font-bold mb-3">
+                    <i class="fa-solid fa-bolt text-amber-600 animate-pulse"></i>
+                    <span>Real-Time Seat Inventory</span>
+                </div>
+                <h2 class="text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl">Premier Express Routes</h2>
+                <p class="text-stone-600 text-sm mt-2 max-w-xl">Book your high-speed Indian Railways tickets with instant SQL database sync and active transaction locking.</p>
+            </div>
+            <div class="flex items-center space-x-3 bg-white/90 px-5 py-3 rounded-2xl border border-amber-200/80 shadow-sm">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span class="text-xs font-bold text-stone-800">SQLite Active Sync</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Trains Table Card -->
+    <div class="rounded-3xl bg-white border border-amber-200/60 shadow-xl shadow-stone-200/50 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-[#F7F3EC] text-stone-600 text-xs uppercase tracking-wider font-bold border-b border-amber-200/60">
+                        <th class="py-5 px-6">Train No</th>
+                        <th class="py-5 px-6">Train Name</th>
+                        <th class="py-5 px-6">Route Details</th>
+                        <th class="py-5 px-6">Availability</th>
+                        <th class="py-5 px-6">Fare</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-amber-100/60 text-sm">
+                    {% for train in trains %}
+                    <tr class="hover:bg-[#FAF5ED] transition duration-150">
+                        <td class="py-4 px-6 font-mono font-bold text-stone-500">#{{ train[0] }}</td>
+                        <td class="py-4 px-6 font-bold text-stone-900">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-lg bg-amber-100/80 text-amber-800 flex items-center justify-center">
+                                    <i class="fa-solid fa-train text-sm"></i>
+                                </div>
+                                <span>{{ train[1] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-stone-700">
+                            <div class="flex items-center space-x-2 font-semibold">
+                                <span>{{ train[2] }}</span>
+                                <i class="fa-solid fa-arrow-right text-xs text-amber-600"></i>
+                                <span>{{ train[3] }}</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6">
+                            {% if train[5] > 0 %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>
+                                {{ train[5] }} Seats Left
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2"></span>
+                                Regret / Sold Out
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 font-extrabold text-amber-800 text-base">₹{{ "%.2f"|format(train[6]) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Booking Form Card -->
+    <div class="max-w-2xl mx-auto rounded-3xl bg-white border border-amber-200/80 p-8 shadow-xl shadow-stone-200/60">
+        <div class="flex items-center space-x-4 mb-6 pb-5 border-b border-amber-100">
+            <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shadow-inner">
+                <i class="fa-solid fa-ticket text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-stone-900">Express Ticket Booking</h3>
+                <p class="text-xs text-stone-500 font-medium">Instant reservation write operation with foreign key triggers</p>
+            </div>
+        </div>
+
+        <form action="/book" method="POST" class="space-y-6">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">Select Preferred Route</label>
+                <div class="relative">
+                    <select name="train_id" class="w-full bg-[#FAF7F2] border border-stone-200 text-stone-900 rounded-2xl px-4 py-3.5 appearance-none focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600 font-medium transition duration-200" required>
+                        {% for train in trains %}
+                        <option value="{{ train[0] }}">{{ train[1] }} ({{ train[2] }} → {{ train[3] }}) — ₹{{ "%.2f"|format(train[6]) }}</option>
+                        {% endfor %}
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-xs text-stone-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">Passenger Full Name</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-4 top-4 text-xs text-stone-400"></i>
+                        <input type="text" name="passenger_name" placeholder="e.g. Heli Mehta" class="w-full bg-[#FAF7F2] border border-stone-200 text-stone-900 rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600 font-medium transition duration-200 placeholder:text-stone-400" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-2">Passenger Age</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-id-card absolute left-4 top-4 text-xs text-stone-400"></i>
+                        <input type="number" name="age" placeholder="e.g. 21" min="1" max="120" class="w-full bg-[#FAF7F2] border border-stone-200 text-stone-900 rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-600 font-medium transition duration-200 placeholder:text-stone-400" required>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-amber-700/20 hover:shadow-amber-700/30 transform hover:-translate-y-0.5 active:translate-y-0 transition duration-200 flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-check-circle"></i>
+                <span>Confirm & Reserve Seat</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
