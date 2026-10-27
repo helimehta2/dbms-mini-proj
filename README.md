@@ -200,6 +200,20 @@ http://127.0.0.1:5000/
 
 ---
 
+## 🧪 Automated DBMS Edge Case Test Suite
+
+To demonstrate and verify concurrency control, race conditions, and transactional integrity, run:
+```bash
+python test_edge_cases.py
+```
+
+This test suite verifies:
+1. **Edge Case 1 (Concurrency & Overbooking Guard)**: Simulates two concurrent threads attempting to book the last remaining seat at the exact same millisecond. Verifies only 1 booking succeeds and 1 is rejected, leaving 0 seats (preventing race condition overbooking).
+2. **Edge Case 2 (Double-Cancellation Idempotency)**: Verifies that multiple cancellation attempts on the same ticket are rejected, ensuring available seat inventory cannot be artificially inflated.
+3. **Edge Case 3 (ACID Atomicity & Partial Crash Recovery)**: Simulates an error midway through a transaction (violating `CHECK` constraints), verifying that a complete `ROLLBACK` executes, leaving zero orphaned records.
+
+---
+
 ## 🎯 Viva / Exam Preparation Q&A
 
 **Q1: Where are JOINs used in your project?**  

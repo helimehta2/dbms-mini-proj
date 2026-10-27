@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 -- =======================================================
--- 1. TABLES DEFINITIONS (RELATIONAL SCHEMA)
+-- 1. TABLES DEFINITIONS (RELATIONAL SCHEMA WITH CHECK CONSTRAINTS)
 -- =======================================================
 
 CREATE TABLE IF NOT EXISTS users (
@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS trains (
     train_name TEXT NOT NULL,
     source TEXT NOT NULL,
     destination TEXT NOT NULL,
-    total_seats INTEGER NOT NULL,
-    available_seats INTEGER NOT NULL,
-    fare REAL NOT NULL
+    total_seats INTEGER NOT NULL CHECK (total_seats > 0),
+    available_seats INTEGER NOT NULL CHECK (available_seats >= 0 AND available_seats <= total_seats),
+    fare REAL NOT NULL CHECK (fare > 0)
 );
 
 CREATE TABLE IF NOT EXISTS bookings (
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     user_id INTEGER NOT NULL,
     train_id INTEGER NOT NULL,
     booking_date TEXT DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'CONFIRMED',
+    status TEXT DEFAULT 'CONFIRMED' CHECK (status IN ('CONFIRMED', 'CANCELLED')),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (train_id) REFERENCES trains(train_id)
 );
@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE TABLE IF NOT EXISTS passengers (
     passenger_id INTEGER PRIMARY KEY AUTOINCREMENT,
     booking_id INTEGER NOT NULL,
-    passenger_name TEXT NOT NULL,
-    age INTEGER NOT NULL,
+    passenger_name TEXT NOT NULL CHECK (length(trim(passenger_name)) > 0),
+    age INTEGER NOT NULL CHECK (age > 0 AND age <= 120),
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
 );
 
@@ -86,19 +86,21 @@ LEFT JOIN bookings b ON t.train_id = b.train_id
 GROUP BY t.train_id;
 
 -- =======================================================
--- 4. DATABASE TRIGGERS (AUTOMATED BUSINESS LOGIC)
+-- 4. DATABASE TRIGGERS (EDGE CASE HANDLING & BUSINESS LOGIC)
 -- =======================================================
 
--- TRIGGER 1: Check seat availability constraint before booking
+-- TRIGGER 1 [Edge Case 1: Overbooking & Race Condition Guard]:
+-- Aborts insert at the engine level if available_seats <= 0
 DROP TRIGGER IF EXISTS trg_check_seat_availability;
 CREATE TRIGGER trg_check_seat_availability
 BEFORE INSERT ON bookings
 WHEN (SELECT available_seats FROM trains WHERE train_id = NEW.train_id) <= 0
 BEGIN
-    SELECT RAISE(ABORT, 'Database Error: No available seats on this train!');
+    SELECT RAISE(ABORT, 'DBMS Race Condition Guard: Overbooking prevented! No seats available.');
 END;
 
--- TRIGGER 2: Automatically decrement available_seats after confirmed booking
+-- TRIGGER 2 [Edge Case 1 & 3: Atomic Inventory Decrement]:
+-- Decrements available_seats immediately after confirmed booking within the same transaction
 DROP TRIGGER IF EXISTS trg_decrement_seat_on_booking;
 CREATE TRIGGER trg_decrement_seat_on_booking
 AFTER INSERT ON bookings
@@ -109,14 +111,15 @@ BEGIN
     WHERE train_id = NEW.train_id AND available_seats > 0;
 END;
 
--- TRIGGER 3: Automatically increment available_seats after cancellation
+-- TRIGGER 3 [Edge Case 2: Double-Cancellation & Inventory Inflation Guard]:
+-- Only increments seat if transitioning from CONFIRMED -> CANCELLED, and caps at total_seats
 DROP TRIGGER IF EXISTS trg_increment_seat_on_cancellation;
 CREATE TRIGGER trg_increment_seat_on_cancellation
 AFTER UPDATE OF status ON bookings
 WHEN OLD.status = 'CONFIRMED' AND NEW.status = 'CANCELLED'
 BEGIN
     UPDATE trains 
-    SET available_seats = available_seats + 1 
+    SET available_seats = MIN(available_seats + 1, total_seats) 
     WHERE train_id = NEW.train_id;
 END;
 
