@@ -1,12 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="space-y-8">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-100/80 border border-amber-200 text-amber-900 text-xs font-bold mb-2">
+                <i class="fa-solid fa-database text-amber-600"></i>
+                <span>SQL VIEW: v_booking_manifest (3-Table INNER JOIN)</span>
+            </div>
             <h2 class="text-3xl font-extrabold text-stone-900 tracking-tight">Database Bookings</h2>
-            <p class="text-sm text-stone-600 mt-1">Multi-table relational JOIN view with live cancellation options</p>
+            <p class="text-sm text-stone-600 mt-1">Multi-table relational JOIN view with live cancellation triggers</p>
         </div>
-        <div class="px-4 py-2 rounded-2xl bg-white border border-amber-200/80 text-amber-900 text-xs font-bold shadow-sm">
+        <div class="px-4 py-2 rounded-2xl bg-white border border-amber-200/80 text-amber-900 text-xs font-bold shadow-sm self-start sm:self-auto">
             Total Records: {{ bookings|length }}
         </div>
     </div>
@@ -17,8 +21,9 @@
                 <thead>
                     <tr class="bg-[#F7F3EC] text-stone-600 text-xs uppercase tracking-wider font-bold border-b border-amber-200/60">
                         <th class="py-5 px-6">Booking ID</th>
-                        <th class="py-5 px-6">Train Route</th>
+                        <th class="py-5 px-6">Train & Route</th>
                         <th class="py-5 px-6">Passenger</th>
+                        <th class="py-5 px-6">Fare</th>
                         <th class="py-5 px-6">Status</th>
                         <th class="py-5 px-6">Timestamp</th>
                         <th class="py-5 px-6 text-right">Action</th>
@@ -33,10 +38,16 @@
                                 <i class="fa-solid fa-train text-xs text-amber-700"></i>
                                 <span>{{ b[1] }}</span>
                             </div>
+                            <div class="text-xs text-stone-500 font-normal mt-0.5">
+                                {{ b[6] }} <i class="fa-solid fa-arrow-right text-[10px] text-amber-600 mx-1"></i> {{ b[7] }}
+                            </div>
                         </td>
                         <td class="py-4 px-6">
                             <div class="font-semibold text-stone-800">{{ b[2] }}</div>
                             <div class="text-xs text-stone-500">Age: {{ b[3] }} yrs</div>
+                        </td>
+                        <td class="py-4 px-6 font-bold text-amber-800">
+                            ₹{{ "%.2f"|format(b[8]) }}
                         </td>
                         <td class="py-4 px-6">
                             {% if b[4] == 'CONFIRMED' %}
@@ -54,7 +65,7 @@
                         <td class="py-4 px-6 text-xs text-stone-500 font-mono">{{ b[5] }}</td>
                         <td class="py-4 px-6 text-right">
                             {% if b[4] == 'CONFIRMED' %}
-                            <form action="/cancel/{{ b[0] }}" method="POST" onsubmit="return confirm('Confirm cancellation for Booking #{{ b[0] }}?');" class="inline">
+                            <form action="/cancel/{{ b[0] }}" method="POST" onsubmit="return confirm('Confirm cancellation for Booking #{{ b[0] }}? This will trigger automatic seat replenishment.');" class="inline">
                                 <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3.5 py-1.5 rounded-xl transition duration-200 shadow-sm">
                                     <i class="fa-solid fa-ban mr-1"></i> Cancel
                                 </button>
@@ -66,9 +77,9 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="py-16 text-center text-stone-400">
+                        <td colspan="7" class="py-16 text-center text-stone-400">
                             <i class="fa-solid fa-folder-open text-4xl mb-3 block text-stone-300"></i>
-                            No bookings recorded in database.
+                            No bookings recorded in database yet.
                         </td>
                     </tr>
                     {% endfor %}

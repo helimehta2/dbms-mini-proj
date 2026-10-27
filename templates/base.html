@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BharatRail — Indian Railways Reservation</title>
+    <title>BharatRail — Indian Railways Reservation & DBMS Analytics</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -13,7 +13,6 @@
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         
-        /* Soft Creamy Ambient Floating Blobs */
         @keyframes floatBlob {
             0%, 100% { transform: translate(0px, 0px) scale(1); }
             33% { transform: translate(30px, -40px) scale(1.08); }
@@ -48,16 +47,19 @@
                 </div>
                 <div>
                     <span class="text-2xl font-extrabold tracking-tight text-stone-900">BharatRail</span>
-                    <span class="block text-[10px] font-bold tracking-widest uppercase text-amber-800">Indian Railways Express</span>
+                    <span class="block text-[10px] font-bold tracking-widest uppercase text-amber-800">Indian Railways DBMS Project</span>
                 </div>
             </a>
 
-            <div class="flex items-center space-x-3">
-                <a href="/" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-stone-700 hover:text-stone-900 hover:bg-white/80 transition duration-200">
+            <div class="flex items-center space-x-2 md:space-x-3">
+                <a href="/" class="px-3.5 py-2 rounded-xl text-sm font-semibold text-stone-700 hover:text-stone-900 hover:bg-white/80 transition duration-200">
                     <i class="fa-solid fa-compass text-amber-700 mr-1.5"></i> Book Tickets
                 </a>
-                <a href="/bookings" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-stone-700 hover:text-stone-900 hover:bg-white/80 transition duration-200">
+                <a href="/bookings" class="px-3.5 py-2 rounded-xl text-sm font-semibold text-stone-700 hover:text-stone-900 hover:bg-white/80 transition duration-200">
                     <i class="fa-solid fa-receipt text-amber-700 mr-1.5"></i> View Bookings
+                </a>
+                <a href="/analytics" class="px-3.5 py-2 rounded-xl text-sm font-semibold text-stone-700 hover:text-stone-900 hover:bg-white/80 transition duration-200">
+                    <i class="fa-solid fa-chart-pie text-amber-700 mr-1.5"></i> Analytics & Joins
                 </a>
             </div>
         </div>
@@ -70,7 +72,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-amber-200/60 bg-[#F3ECE1]/60 backdrop-blur-md py-6 text-center text-xs text-stone-600 z-10">
-        <p class="font-medium">© 2026 BharatRail Reservation System • Indian Railways DBMS Project</p>
+        <p class="font-medium">© 2026 BharatRail Reservation System • Heli Mehta DBMS Mini Project</p>
     </footer>
 </body>
 </html>

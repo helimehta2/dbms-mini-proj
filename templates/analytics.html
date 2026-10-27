@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-10">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-100/80 border border-amber-200 text-amber-900 text-xs font-bold mb-2">
+                <i class="fa-solid fa-code-branch text-amber-600"></i>
+                <span>LEFT OUTER JOIN & Aggregate Analytics</span>
+            </div>
+            <h2 class="text-3xl font-extrabold text-stone-900 tracking-tight">Train Analytics & Occupancy</h2>
+            <p class="text-sm text-stone-600 mt-1">Real-time occupancy tracking and revenue analysis generated directly from database views.</p>
+        </div>
+        <div class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-2xl bg-white border border-amber-200/80 shadow-sm text-xs font-bold text-stone-700">
+            <i class="fa-solid fa-bolt text-emerald-500"></i>
+            <span>SQL Aggregate Engine Active</span>
+        </div>
+    </div>
+
+    <!-- Summary Metrics Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="rounded-3xl bg-white border border-amber-200/70 p-6 shadow-lg shadow-stone-200/40">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-stone-500">Active Fleet</span>
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                    <i class="fa-solid fa-train text-lg"></i>
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-stone-900">{{ totals[0] }}</div>
+            <p class="text-xs text-stone-500 mt-1">Total trains in service</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-amber-200/70 p-6 shadow-lg shadow-stone-200/40">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-stone-500">Confirmed Passengers</span>
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                    <i class="fa-solid fa-users text-lg"></i>
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-emerald-700">{{ totals[1] }}</div>
+            <p class="text-xs text-stone-500 mt-1">Active ticket reservations</p>
+        </div>
+
+        <div class="rounded-3xl bg-white border border-amber-200/70 p-6 shadow-lg shadow-stone-200/40">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-stone-500">Total Revenue</span>
+                <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                    <i class="fa-solid fa-indian-rupee-sign text-lg"></i>
+                </div>
+            </div>
+            <div class="text-3xl font-extrabold text-amber-800">₹{{ "%.2f"|format(totals[2]) }}</div>
+            <p class="text-xs text-stone-500 mt-1">Aggregated via SQL SUM()</p>
+        </div>
+    </div>
+
+    <!-- Occupancy by Route Table -->
+    <div class="rounded-3xl bg-white border border-amber-200/60 shadow-xl shadow-stone-200/50 overflow-hidden">
+        <div class="px-6 py-5 border-b border-amber-100 bg-[#FAF7F2] flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-stone-900">Route Occupancy & Earnings Report</h3>
+                <p class="text-xs text-stone-500">Sourced from <code class="font-mono bg-amber-100/70 px-1.5 py-0.5 rounded text-amber-900 font-bold">v_train_occupancy_report</code></p>
+            </div>
+            <span class="text-xs font-bold px-3 py-1 bg-amber-100 text-amber-800 rounded-full">LEFT OUTER JOIN</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-[#F7F3EC] text-stone-600 text-xs uppercase tracking-wider font-bold border-b border-amber-200/60">
+                        <th class="py-5 px-6">Train No</th>
+                        <th class="py-5 px-6">Train Name & Route</th>
+                        <th class="py-5 px-6">Seat Inventory</th>
+                        <th class="py-5 px-6">Occupancy (%)</th>
+                        <th class="py-5 px-6">Confirmed</th>
+                        <th class="py-5 px-6 text-right">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-amber-100/60 text-sm">
+                    {% for r in reports %}
+                    <tr class="hover:bg-[#FAF5ED] transition duration-150">
+                        <td class="py-4 px-6 font-mono font-bold text-stone-500">#{{ r[0] }}</td>
+                        <td class="py-4 px-6 font-bold text-stone-900">
+                            <div>{{ r[1] }}</div>
+                            <div class="text-xs text-stone-500 font-normal mt-0.5">
+                                {{ r[2] }} <i class="fa-solid fa-arrow-right text-[10px] text-amber-600 mx-1"></i> {{ r[3] }}
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 text-stone-700">
+                            <span class="font-bold text-stone-900">{{ r[5] }}</span> / {{ r[4] }} available
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="flex items-center space-x-3 max-w-xs">
+                                <div class="w-24 bg-stone-100 rounded-full h-2.5 overflow-hidden border border-stone-200">
+                                    <div class="bg-gradient-to-r from-amber-500 to-amber-700 h-2.5 rounded-full" style="width: {{ r[7] }}%"></div>
+                                </div>
+                                <span class="font-bold text-xs text-stone-700 font-mono">{{ r[7] }}%</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-6 font-bold text-stone-800">
+                            {{ r[8] }} bookings
+                        </td>
+                        <td class="py-4 px-6 text-right font-extrabold text-amber-800 text-base">
+                            ₹{{ "%.2f"|format(r[9]) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- DBMS Concept Explanation Card (Great for Viva!) -->
+    <div class="rounded-3xl bg-gradient-to-br from-[#F5EFE6] to-[#FAF7F2] border border-amber-200 p-8 shadow-md">
+        <div class="flex items-center space-x-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-700 text-white flex items-center justify-center">
+                <i class="fa-solid fa-graduation-cap text-lg"></i>
+            </div>
+            <div>
+                <h4 class="text-base font-extrabold text-stone-900">DBMS Project Architecture & Viva Highlights</h4>
+                <p class="text-xs text-stone-600">How SQL Joins, Views, and Triggers function in this system</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-stone-700 mt-4">
+            <div class="bg-white/80 p-5 rounded-2xl border border-amber-200/60 space-y-2">
+                <div class="font-bold text-amber-900 flex items-center space-x-1.5 text-sm">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <span>LEFT OUTER JOIN</span>
+                </div>
+                <p class="text-stone-600 leading-relaxed">
+                    Combines <code class="font-mono font-bold text-amber-800">trains</code> with <code class="font-mono font-bold text-amber-800">bookings</code>. Even if a train currently has 0 bookings, it still appears in the report with 0 revenue instead of being excluded.
+                </p>
+            </div>
+
+            <div class="bg-white/80 p-5 rounded-2xl border border-amber-200/60 space-y-2">
+                <div class="font-bold text-amber-900 flex items-center space-x-1.5 text-sm">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>SQL Views (CREATE VIEW)</span>
+                </div>
+                <p class="text-stone-600 leading-relaxed">
+                    Encapsulates complex multi-table joins into reusable virtual tables: <code class="font-mono font-bold text-amber-800">v_booking_manifest</code> and <code class="font-mono font-bold text-amber-800">v_train_occupancy_report</code>.
+                </p>
+            </div>
+
+            <div class="bg-white/80 p-5 rounded-2xl border border-amber-200/60 space-y-2">
+                <div class="font-bold text-amber-900 flex items-center space-x-1.5 text-sm">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Automated SQL Triggers</span>
+                </div>
+                <p class="text-stone-600 leading-relaxed">
+                    <code class="font-mono font-bold text-amber-800">trg_decrement_seat_on_booking</code> and <code class="font-mono font-bold text-amber-800">trg_increment_seat_on_cancellation</code> enforce seat inventory integrity automatically inside the SQL engine.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

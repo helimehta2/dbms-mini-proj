@@ -1,18 +1,16 @@
 PRAGMA foreign_keys = ON;
 
--- Re-create tables cleanly
-DROP TABLE IF EXISTS passengers;
-DROP TABLE IF EXISTS bookings;
-DROP TABLE IF EXISTS trains;
-DROP TABLE IF EXISTS users;
+-- =======================================================
+-- 1. TABLES DEFINITIONS (RELATIONAL SCHEMA)
+-- =======================================================
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE trains (
+CREATE TABLE IF NOT EXISTS trains (
     train_id INTEGER PRIMARY KEY,
     train_name TEXT NOT NULL,
     source TEXT NOT NULL,
@@ -22,7 +20,7 @@ CREATE TABLE trains (
     fare REAL NOT NULL
 );
 
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
     booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     train_id INTEGER NOT NULL,
@@ -32,7 +30,7 @@ CREATE TABLE bookings (
     FOREIGN KEY (train_id) REFERENCES trains(train_id)
 );
 
-CREATE TABLE passengers (
+CREATE TABLE IF NOT EXISTS passengers (
     passenger_id INTEGER PRIMARY KEY AUTOINCREMENT,
     booking_id INTEGER NOT NULL,
     passenger_name TEXT NOT NULL,
@@ -40,8 +38,92 @@ CREATE TABLE passengers (
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id) ON DELETE CASCADE
 );
 
--- Insert Indian Railways Routes
-INSERT INTO trains (train_id, train_name, source, destination, total_seats, available_seats, fare)
+-- =======================================================
+-- 2. INDEXES (QUERY OPTIMIZATION)
+-- =======================================================
+CREATE INDEX IF NOT EXISTS idx_trains_route ON trains(source, destination);
+CREATE INDEX IF NOT EXISTS idx_bookings_train ON bookings(train_id);
+CREATE INDEX IF NOT EXISTS idx_passengers_booking ON passengers(booking_id);
+
+-- =======================================================
+-- 3. SQL VIEWS (MULTI-TABLE JOINS & ABSTRACTION)
+-- =======================================================
+
+-- VIEW 1: Relational 3-Table Inner Join (Bookings + Trains + Passengers)
+DROP VIEW IF EXISTS v_booking_manifest;
+CREATE VIEW v_booking_manifest AS
+SELECT 
+    b.booking_id,
+    t.train_id,
+    t.train_name,
+    t.source,
+    t.destination,
+    t.fare,
+    p.passenger_name,
+    p.age,
+    b.status,
+    b.booking_date
+FROM bookings b
+JOIN trains t ON b.train_id = t.train_id
+JOIN passengers p ON b.booking_id = p.booking_id;
+
+-- VIEW 2: Analytical View with LEFT OUTER JOIN, GROUP BY, and Aggregates
+DROP VIEW IF EXISTS v_train_occupancy_report;
+CREATE VIEW v_train_occupancy_report AS
+SELECT 
+    t.train_id,
+    t.train_name,
+    t.source,
+    t.destination,
+    t.total_seats,
+    t.available_seats,
+    (t.total_seats - t.available_seats) AS booked_seats,
+    ROUND(((t.total_seats - t.available_seats) * 100.0 / t.total_seats), 1) AS occupancy_pct,
+    COUNT(CASE WHEN b.status = 'CONFIRMED' THEN 1 END) AS confirmed_bookings,
+    COALESCE(SUM(CASE WHEN b.status = 'CONFIRMED' THEN t.fare ELSE 0 END), 0) AS total_revenue
+FROM trains t
+LEFT JOIN bookings b ON t.train_id = b.train_id
+GROUP BY t.train_id;
+
+-- =======================================================
+-- 4. DATABASE TRIGGERS (AUTOMATED BUSINESS LOGIC)
+-- =======================================================
+
+-- TRIGGER 1: Check seat availability constraint before booking
+DROP TRIGGER IF EXISTS trg_check_seat_availability;
+CREATE TRIGGER trg_check_seat_availability
+BEFORE INSERT ON bookings
+WHEN (SELECT available_seats FROM trains WHERE train_id = NEW.train_id) <= 0
+BEGIN
+    SELECT RAISE(ABORT, 'Database Error: No available seats on this train!');
+END;
+
+-- TRIGGER 2: Automatically decrement available_seats after confirmed booking
+DROP TRIGGER IF EXISTS trg_decrement_seat_on_booking;
+CREATE TRIGGER trg_decrement_seat_on_booking
+AFTER INSERT ON bookings
+WHEN NEW.status = 'CONFIRMED'
+BEGIN
+    UPDATE trains 
+    SET available_seats = available_seats - 1 
+    WHERE train_id = NEW.train_id AND available_seats > 0;
+END;
+
+-- TRIGGER 3: Automatically increment available_seats after cancellation
+DROP TRIGGER IF EXISTS trg_increment_seat_on_cancellation;
+CREATE TRIGGER trg_increment_seat_on_cancellation
+AFTER UPDATE OF status ON bookings
+WHEN OLD.status = 'CONFIRMED' AND NEW.status = 'CANCELLED'
+BEGIN
+    UPDATE trains 
+    SET available_seats = available_seats + 1 
+    WHERE train_id = NEW.train_id;
+END;
+
+-- =======================================================
+-- 5. INITIAL SEED DATA
+-- =======================================================
+INSERT OR IGNORE INTO trains (train_id, train_name, source, destination, total_seats, available_seats, fare)
 VALUES 
 (201, 'Vande Bharat Express', 'New Delhi (NDLS)', 'Varanasi Junction (BSB)', 50, 50, 1750.00),
 (202, 'Mumbai Rajdhani Express', 'Mumbai Central (MMCT)', 'Delhi Nizamuddin (NZM)', 30, 30, 2400.00),
@@ -49,5 +131,5 @@ VALUES
 (204, 'Tejas Express', 'Mumbai CSMT (CSMT)', 'Goa Madgaon (MAO)', 35, 35, 1580.00),
 (205, 'Howrah Duronto Express', 'Kolkata Howrah (HWH)', 'New Delhi (NDLS)', 45, 45, 2200.00);
 
-INSERT INTO users (user_id, name, email)
-VALUES (1, 'Default Student', 'student@example.com');
+INSERT OR IGNORE INTO users (user_id, name, email)
+VALUES (1, 'Heli Mehta', 'helimehta230@gmail.com');

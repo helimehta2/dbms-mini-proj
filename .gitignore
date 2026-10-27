@@ -8,4 +8,5 @@ env/
 instance/
 .vscode/
 .idea/
+*.db
 *.db-journal
