@@ -141,26 +141,33 @@ VALUES (1, 'Heli Mehta', 'helimehta230@gmail.com');
 -- 6. RECORDED RESERVATION DATA (HELI & NEEVA'S BOOKINGS)
 -- =======================================================
 
--- Reservation 1: Ticket booked by Heli on Tejas Express
+-- Reservation 1: Ticket booked by Heli on Tejas Express (Train #204)
 INSERT OR IGNORE INTO bookings (booking_id, user_id, train_id, booking_date, status)
 VALUES (1, 1, 204, '2026-10-29 04:24:50', 'CONFIRMED');
 
 INSERT OR IGNORE INTO passengers (passenger_id, booking_id, passenger_name, age)
 VALUES (1, 1, 'heli', 21);
 
--- Reservation 2: Ticket booked on Vande Bharat Express
+-- Reservation 2: Ticket booked on Vande Bharat Express (Train #201)
 INSERT OR IGNORE INTO bookings (booking_id, user_id, train_id, booking_date, status)
 VALUES (101, 1, 201, '2026-10-29 04:34:11', 'CONFIRMED');
 
 INSERT OR IGNORE INTO passengers (passenger_id, booking_id, passenger_name, age)
 VALUES (501, 101, 'Heli Mehta', 21);
 
--- Reservation 3: Ticket booked by Neeva on Mumbai Rajdhani Express
+-- Reservation 3: Ticket booked by Neeva Mehta on Mumbai Rajdhani (Train #202)
 INSERT OR IGNORE INTO bookings (booking_id, user_id, train_id, booking_date, status)
 VALUES (102, 1, 202, '2026-10-29 05:04:02', 'CONFIRMED');
 
 INSERT OR IGNORE INTO passengers (passenger_id, booking_id, passenger_name, age)
 VALUES (502, 102, 'neeva mehta', 27);
+
+-- Reservation 4: Ticket booked by Neeva on Chennai Shatabdi (Train #203)
+INSERT OR IGNORE INTO bookings (booking_id, user_id, train_id, booking_date, status)
+VALUES (103, 1, 203, '2026-10-29 08:01:14', 'CONFIRMED');
+
+INSERT OR IGNORE INTO passengers (passenger_id, booking_id, passenger_name, age)
+VALUES (503, 103, 'neeva', 23);
 
 
 -- =======================================================
@@ -179,10 +186,11 @@ RESULT SET FOR QUERY 1:
 | 1            | 1          | heli           | 21  |
 | 501          | 101        | Heli Mehta     | 21  |
 | 502          | 102        | neeva mehta    | 27  |
+| 503          | 103        | neeva          | 23  |
 +--------------+------------+----------------+-----+
 */
 
--- Query 2: Retrieve reservation specifically for 'neeva mehta'
+-- Query 2: Retrieve reservation details for Chennai Shatabdi Express (Booking #103)
 SELECT 
     b.booking_id,
     t.train_name,
@@ -195,15 +203,15 @@ SELECT
 FROM bookings b
 JOIN trains t ON b.train_id = t.train_id
 JOIN passengers p ON b.booking_id = p.booking_id
-WHERE p.passenger_name LIKE '%neeva%';
+WHERE b.booking_id = 103;
 
 /*
 RESULT SET FOR QUERY 2:
-+------------+-------------------------+-------------------------------------------------+----------------+-----+---------+-----------+---------------------+
-| booking_id | train_name              | route                                           | passenger_name | age | fare    | status    | booking_date        |
-+------------+-------------------------+-------------------------------------------------+----------------+-----+---------+-----------+---------------------+
-| 102        | Mumbai Rajdhani Express | Mumbai Central (MMCT) -> Delhi Nizamuddin (NZM) | neeva mehta    | 27  | 2400.00 | CONFIRMED | 2026-10-29 05:04:02 |
-+------------+-------------------------+-------------------------------------------------+----------------+-----+---------+-----------+---------------------+
++------------+--------------------------+-----------------------------------------------+----------------+-----+--------+-----------+---------------------+
+| booking_id | train_name               | route                                         | passenger_name | age | fare   | status    | booking_date        |
++------------+--------------------------+-----------------------------------------------+----------------+-----+--------+-----------+---------------------+
+| 103        | Chennai Shatabdi Express | Bengaluru City (SBC) -> Chennai Central (MAS) | neeva          | 23  | 950.00 | CONFIRMED | 2026-10-29 08:01:14 |
++------------+--------------------------+-----------------------------------------------+----------------+-----+--------+-----------+---------------------+
 */
 
 -- Query 3: Multi-Table Relational INNER JOIN (Full Ticket Manifest for all bookings)
@@ -222,13 +230,14 @@ JOIN passengers p ON b.booking_id = p.booking_id;
 
 /*
 RESULT SET FOR QUERY 3:
-+------------+-------------------------+-------------------------------------------------+----------------+-----+---------+-----------+---------------------+
-| booking_id | train_name              | route                                           | passenger_name | age | fare    | status    | booking_date        |
-+------------+-------------------------+-------------------------------------------------+----------------+-----+---------+-----------+---------------------+
-| 1          | Tejas Express           | Mumbai CSMT (CSMT) -> Goa Madgaon (MAO)         | heli           | 21  | 1580.00 | CONFIRMED | 2026-10-29 04:24:50 |
-| 101        | Vande Bharat Express    | New Delhi (NDLS) -> Varanasi Junction (BSB)     | Heli Mehta     | 21  | 1750.00 | CONFIRMED | 2026-10-29 04:34:11 |
-| 102        | Mumbai Rajdhani Express | Mumbai Central (MMCT) -> Delhi Nizamuddin (NZM) | neeva mehta    | 27  | 2400.00 | CONFIRMED | 2026-10-29 05:04:02 |
-+------------+-------------------------+-------------------------------------------------+----------------+-----+---------+-----------+---------------------+
++------------+--------------------------+-----------------------------------------------+----------------+-----+---------+-----------+---------------------+
+| booking_id | train_name               | route                                         | passenger_name | age | fare    | status    | booking_date        |
++------------+--------------------------+-----------------------------------------------+----------------+-----+---------+-----------+---------------------+
+| 1          | Tejas Express            | Mumbai CSMT (CSMT) -> Goa Madgaon (MAO)       | heli           | 21  | 1580.00 | CONFIRMED | 2026-10-29 04:24:50 |
+| 101        | Vande Bharat Express     | New Delhi (NDLS) -> Varanasi Junction (BSB)   | Heli Mehta     | 21  | 1750.00 | CONFIRMED | 2026-10-29 04:34:11 |
+| 102        | Mumbai Rajdhani Express  | Mumbai Central (MMCT) -> Delhi Nizamuddin     | neeva mehta    | 27  | 2400.00 | CONFIRMED | 2026-10-29 05:04:02 |
+| 103        | Chennai Shatabdi Express | Bengaluru City (SBC) -> Chennai Central (MAS) | neeva          | 23  | 950.00  | CONFIRMED | 2026-10-29 08:01:14 |
++------------+--------------------------+-----------------------------------------------+----------------+-----+---------+-----------+---------------------+
 */
 
 -- Query 4: Querying directly from the SQL View (v_booking_manifest)
