@@ -136,3 +136,50 @@ VALUES
 
 INSERT OR IGNORE INTO users (user_id, name, email)
 VALUES (1, 'Heli Mehta', 'helimehta230@gmail.com');
+
+
+-- =======================================================
+-- 6. SAMPLE RESERVATION DATA (FOR SUBMISSION / TESTING)
+-- =======================================================
+
+-- Sample Booking for Heli Mehta on Vande Bharat Express (Train #201)
+INSERT OR IGNORE INTO bookings (booking_id, user_id, train_id, status)
+VALUES (101, 1, 201, 'CONFIRMED');
+
+-- Passenger Details linked via Foreign Key (booking_id = 101)
+INSERT OR IGNORE INTO passengers (passenger_id, booking_id, passenger_name, age)
+VALUES (501, 101, 'Heli Mehta', 21);
+
+-- =======================================================
+-- 7. SQL QUERIES TO SHOW RESERVATIONS & PASSENGERS
+-- =======================================================
+
+-- 1. Simple SELECT query to view all passenger records:
+SELECT passenger_id, booking_id, passenger_name, age 
+FROM passengers;
+
+-- 2. SELECT query filtered by passenger name 'Heli Mehta':
+SELECT passenger_id, booking_id, passenger_name, age 
+FROM passengers 
+WHERE passenger_name = 'Heli Mehta';
+
+-- 3. Multi-table Relational INNER JOIN showing the full ticket manifest:
+SELECT 
+    b.booking_id,
+    t.train_name,
+    t.source,
+    t.destination,
+    p.passenger_name,
+    p.age,
+    t.fare,
+    b.status,
+    b.booking_date
+FROM bookings b
+JOIN trains t ON b.train_id = t.train_id
+JOIN passengers p ON b.booking_id = p.booking_id
+WHERE p.passenger_name = 'Heli Mehta';
+
+-- 4. Querying directly from the SQL View:
+SELECT * 
+FROM v_booking_manifest 
+WHERE passenger_name = 'Heli Mehta';
