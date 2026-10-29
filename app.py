@@ -1,22 +1,22 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-import sqlite3
+from flask import Flask, render_template, request, redirect, url_for
+import pymysql
 import os
 
 app = Flask(__name__)
 app.secret_key = "dbms-railway-reservation-key"
-DB_NAME = "railway.db"
+
+MYSQL_CONFIG = {
+    "host": "localhost",
+    "user": "heli",
+    "password": "",
+    "database": "railway_db",
+    "port": 3306,
+    "autocommit": False
+}
 
 def get_db():
-    conn = sqlite3.connect(DB_NAME, timeout=10.0, isolation_level=None)
-    conn.execute("PRAGMA foreign_keys = ON;")
+    conn = pymysql.connect(**MYSQL_CONFIG)
     return conn
-
-def init_db():
-    conn = get_db()
-    with open("schema.sql", "r") as f:
-        schema_sql = f.read()
-    conn.executescript(schema_sql)
-    conn.close()
 
 @app.route("/")
 def index():
@@ -28,9 +28,8 @@ def index():
     return render_template("index.html", trains=trains)
 
 # =====================================================================
-# EDGE CASE 1 & 3: Concurrency / Race Condition & ACID Atomicity
-# Uses 'BEGIN IMMEDIATE' to lock write operations, prevents double booking,
-# and performs automatic rollback if any part fails.
+# EDGE CASE 1 & 3: Concurrency Control ('FOR UPDATE') & ACID Atomicity
+# Row-level lock prevents simultaneous double-booking in MySQL.
 # =====================================================================
 @app.route("/book", methods=["POST"])
 def book():
@@ -45,29 +44,28 @@ def book():
     cursor = conn.cursor()
 
     try:
-        # Acquire immediate exclusive write lock to prevent race conditions
-        conn.execute("BEGIN IMMEDIATE")
+        conn.begin()
 
-        # 1. Edge Case 1: Check availability prior to booking
-        cursor.execute("SELECT available_seats, total_seats FROM trains WHERE train_id = ?", (train_id,))
+        # 1. Row-level write lock for concurrency
+        cursor.execute("SELECT available_seats, total_seats FROM trains WHERE train_id = %s FOR UPDATE", (train_id,))
         seat_data = cursor.fetchone()
         if not seat_data or seat_data[0] <= 0:
-            conn.execute("ROLLBACK")
+            conn.rollback()
             conn.close()
             return "Booking Rejected: No available seats on this train! (Overbooking prevented)", 400
 
-        # 2. Insert booking record (TRIGGER: trg_decrement_seat_on_booking automatically updates seat count)
-        cursor.execute("INSERT INTO bookings (user_id, train_id) VALUES (1, ?)", (train_id,))
+        # 2. Insert booking (MySQL Trigger trg_decrement_seat_on_booking automatically updates train available_seats)
+        cursor.execute("INSERT INTO bookings (user_id, train_id) VALUES (1, %s)", (train_id,))
         booking_id = cursor.lastrowid
 
-        # 3. Edge Case 3: Insert passenger record (If this fails, whole transaction rolls back)
-        cursor.execute("INSERT INTO passengers (booking_id, passenger_name, age) VALUES (?, ?, ?)", 
+        # 3. Insert passenger record
+        cursor.execute("INSERT INTO passengers (booking_id, passenger_name, age) VALUES (%s, %s, %s)", 
                        (booking_id, passenger_name, age))
-        
+
         # Commit all atomically
-        conn.execute("COMMIT")
+        conn.commit()
     except Exception as e:
-        conn.execute("ROLLBACK")
+        conn.rollback()
         return f"Transaction Aborted (All changes safely rolled back): {e}", 500
     finally:
         conn.close()
@@ -79,7 +77,7 @@ def bookings():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Query directly from SQL VIEW: v_booking_manifest (Relational 3-table INNER JOIN)
+    # Query directly from MySQL VIEW: v_booking_manifest (Relational 3-table INNER JOIN)
     query = """
     SELECT booking_id, train_name, passenger_name, age, status, booking_date, source, destination, fare
     FROM v_booking_manifest
@@ -92,7 +90,6 @@ def bookings():
 
 # =====================================================================
 # EDGE CASE 2: Idempotent Cancellation (Double-Cancellation Guard)
-# Ensures a booking cannot be cancelled multiple times to inflate seat counts.
 # =====================================================================
 @app.route("/cancel/<int:booking_id>", methods=["POST"])
 def cancel(booking_id):
@@ -100,20 +97,19 @@ def cancel(booking_id):
     cursor = conn.cursor()
 
     try:
-        conn.execute("BEGIN IMMEDIATE")
+        conn.begin()
 
         # Check if booking is in CONFIRMED state before cancelling
-        cursor.execute("UPDATE bookings SET status = 'CANCELLED' WHERE booking_id = ? AND status = 'CONFIRMED'", (booking_id,))
+        cursor.execute("UPDATE bookings SET status = 'CANCELLED' WHERE booking_id = %s AND status = 'CONFIRMED'", (booking_id,))
         
         if cursor.rowcount == 0:
-            # Booking does not exist or was ALREADY cancelled
-            conn.execute("ROLLBACK")
+            conn.rollback()
             conn.close()
             return "Cancellation rejected: This ticket is already cancelled or does not exist.", 400
 
-        conn.execute("COMMIT")
+        conn.commit()
     except Exception as e:
-        conn.execute("ROLLBACK")
+        conn.rollback()
         return f"Cancellation failed: {e}", 500
     finally:
         conn.close()
@@ -125,7 +121,7 @@ def analytics():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Query from SQL VIEW: v_train_occupancy_report (Uses LEFT OUTER JOIN & GROUP BY & Aggregate functions)
+    # Query from MySQL VIEW: v_train_occupancy_report (Uses LEFT OUTER JOIN & GROUP BY & Aggregate functions)
     query = """
     SELECT train_id, train_name, source, destination, total_seats, available_seats, 
            booked_seats, occupancy_pct, confirmed_bookings, total_revenue
@@ -149,8 +145,6 @@ def analytics():
     conn.close()
 
     return render_template("analytics.html", reports=reports, totals=totals)
-
-init_db()
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
